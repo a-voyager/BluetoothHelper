@@ -48,6 +48,8 @@ public class BtHelper {
     public void searchDevices(OnSearchDeviceListener listener) {
 
         checkNotNull(listener);
+        checkNotNull(mBondedList);
+        checkNotNull(mNewList);
 
         mOnSearchDeviceListener = listener;
 
@@ -97,6 +99,9 @@ public class BtHelper {
             } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                 if (mOnSearchDeviceListener != null)
                     mOnSearchDeviceListener.onSearchCompleted(mBondedList, mNewList);
+
+                // unregister
+                mContext.unregisterReceiver(mReceiver);
             }
         }
     }
@@ -111,7 +116,6 @@ public class BtHelper {
         if (mBluetoothAdapter != null)
             mBluetoothAdapter.cancelDiscovery();
 
-        mContext.unregisterReceiver(mReceiver);
 
         mOnSearchDeviceListener = null;
 

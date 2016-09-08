@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
 
                 BtHelper btHelper = BtHelper.getInstance(MainActivity.this);
 
+
                 btHelper.searchDevices(new OnSearchDeviceListener() {
                     @Override
                     public void onStartDiscovery() {
@@ -48,6 +49,9 @@ public class MainActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
                 });
+
+                btHelper.dispose();
+
 
             }
         });
