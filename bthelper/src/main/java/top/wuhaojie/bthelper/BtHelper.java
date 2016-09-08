@@ -2,13 +2,19 @@ package top.wuhaojie.bthelper;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.text.TextUtils;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by wuhaojie on 2016/9/7 18:57.
@@ -16,6 +22,7 @@ import java.util.List;
 public class BtHelper {
 
     public static final String DEVICE_HAS_NOT_BLUETOOTH_MODULE = "device has not bluetooth module!";
+    public static final String STR_UUID = "00001101-0000-1000-8000-00805F9B34FB";
     private Context mContext;
 
     //    get bluetooth adapter
@@ -31,6 +38,7 @@ public class BtHelper {
 
     private static volatile BtHelper sBtHelper;
     private boolean mNeed2unRegister;
+    private ExecutorService mExecutorService = Executors.newCachedThreadPool();
 
     public static BtHelper getInstance(Context context) {
         if (sBtHelper == null) {
@@ -116,6 +124,55 @@ public class BtHelper {
         }
     }
 
+
+    private void sendMessage(BluetoothDevice device) {
+
+
+    }
+
+
+    private void receiveMessage(BluetoothDevice device) {
+
+
+    }
+
+
+    private void connectDevice(String mac, OnErrorListener listener) {
+        if (mac == null || TextUtils.isEmpty(mac))
+            throw new IllegalArgumentException("mac address is null or empty!");
+        if (!BluetoothAdapter.checkBluetoothAddress(mac))
+            throw new IllegalArgumentException("mac address is not correct! make sure it's upper case!");
+
+        ConnectDeviceRunnable connectDeviceRunnable = new ConnectDeviceRunnable(mac, listener);
+        checkNotNull(mExecutorService);
+
+        mExecutorService.submit(connectDeviceRunnable);
+
+    }
+
+
+    private class ConnectDeviceRunnable implements Runnable {
+        private String mac;
+        private OnErrorListener listener;
+
+        public ConnectDeviceRunnable(String mac, OnErrorListener listener) {
+            this.mac = mac;
+            this.listener = listener;
+        }
+
+        @Override
+        public void run() {
+            // always return a remote device
+            BluetoothDevice remoteDevice = mBluetoothAdapter.getRemoteDevice(mac);
+
+            try {
+                BluetoothSocket socket = remoteDevice.createRfcommSocketToServiceRecord(UUID.fromString(STR_UUID));
+                socket.connect();
+            } catch (IOException e) {
+                listener.onError(e);
+            }
+        }
+    }
 
     private void checkNotNull(Object o) {
         if (o == null)
