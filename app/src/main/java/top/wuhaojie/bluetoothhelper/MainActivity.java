@@ -14,20 +14,23 @@ import top.wuhaojie.bthelper.OnSearchDeviceListener;
 public class MainActivity extends AppCompatActivity {
 
     public static final String TAG = "MainActivity";
+    private BtHelper mBtHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mBtHelper = BtHelper.getInstance(MainActivity.this);
+
+        mBtHelper.requestEnableBt();
+
         findViewById(R.id.btn_search).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
-                BtHelper btHelper = BtHelper.getInstance(MainActivity.this);
 
-
-                btHelper.searchDevices(new OnSearchDeviceListener() {
+                mBtHelper.searchDevices(new OnSearchDeviceListener() {
                     @Override
                     public void onStartDiscovery() {
                         Log.d(TAG, "onStartDiscovery()");
@@ -50,11 +53,19 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-                btHelper.dispose();
+
 
 
             }
         });
 
+
+
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mBtHelper.dispose();
     }
 }

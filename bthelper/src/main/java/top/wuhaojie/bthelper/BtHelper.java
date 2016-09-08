@@ -15,6 +15,7 @@ import java.util.List;
  */
 public class BtHelper {
 
+    public static final String DEVICE_HAS_NOT_BLUETOOTH_MODULE = "device has not bluetooth module!";
     private Context mContext;
 
     //    get bluetooth adapter
@@ -29,6 +30,7 @@ public class BtHelper {
     private OnSearchDeviceListener mOnSearchDeviceListener;
 
     private static volatile BtHelper sBtHelper;
+    private boolean mNeed2unRegister;
 
     public static BtHelper getInstance(Context context) {
         if (sBtHelper == null) {
@@ -45,16 +47,25 @@ public class BtHelper {
     }
 
 
+    public void requestEnableBt() {
+        if (mBluetoothAdapter == null) {
+            throw new NullPointerException(DEVICE_HAS_NOT_BLUETOOTH_MODULE);
+        }
+        if (!mBluetoothAdapter.isEnabled())
+            mBluetoothAdapter.enable();
+    }
+
+
     public void searchDevices(OnSearchDeviceListener listener) {
 
         checkNotNull(listener);
-        checkNotNull(mBondedList);
-        checkNotNull(mNewList);
+        if (mBondedList == null) mBondedList = new ArrayList<>();
+        if (mNewList == null) mNewList = new ArrayList<>();
 
         mOnSearchDeviceListener = listener;
 
         if (mBluetoothAdapter == null) {
-            mOnSearchDeviceListener.onError(new NullPointerException("device has not bluetooth!"));
+            mOnSearchDeviceListener.onError(new NullPointerException(DEVICE_HAS_NOT_BLUETOOTH_MODULE));
             return;
         }
 
@@ -66,6 +77,7 @@ public class BtHelper {
         filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
         mContext.registerReceiver(mReceiver, filter);
 
+        mNeed2unRegister = true;
 
         mBondedList.clear();
         mNewList.clear();
@@ -74,7 +86,8 @@ public class BtHelper {
             mBluetoothAdapter.cancelDiscovery();
         mBluetoothAdapter.startDiscovery();
 
-        mOnSearchDeviceListener.onStartDiscovery();
+        if (mOnSearchDeviceListener != null)
+            mOnSearchDeviceListener.onStartDiscovery();
 
     }
 
@@ -99,9 +112,6 @@ public class BtHelper {
             } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                 if (mOnSearchDeviceListener != null)
                     mOnSearchDeviceListener.onSearchCompleted(mBondedList, mNewList);
-
-                // unregister
-                mContext.unregisterReceiver(mReceiver);
             }
         }
     }
@@ -116,6 +126,9 @@ public class BtHelper {
         if (mBluetoothAdapter != null)
             mBluetoothAdapter.cancelDiscovery();
 
+        // unregister
+        if (mNeed2unRegister)
+            mContext.unregisterReceiver(mReceiver);
 
         mOnSearchDeviceListener = null;
 
