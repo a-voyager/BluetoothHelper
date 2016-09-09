@@ -10,6 +10,8 @@ import android.content.IntentFilter;
 import android.text.TextUtils;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -39,6 +41,8 @@ public class BtHelper {
     private static volatile BtHelper sBtHelper;
     private boolean mNeed2unRegister;
     private ExecutorService mExecutorService = Executors.newCachedThreadPool();
+    private InputStream mInputStream;
+    private OutputStream mOutputStream;
 
     public static BtHelper getInstance(Context context) {
         if (sBtHelper == null) {
@@ -126,13 +130,11 @@ public class BtHelper {
 
 
     private void sendMessage(BluetoothDevice device) {
-
-
+        // TODO: 2016/9/9
     }
 
 
     private void receiveMessage(BluetoothDevice device) {
-
 
     }
 
@@ -168,6 +170,8 @@ public class BtHelper {
             try {
                 BluetoothSocket socket = remoteDevice.createRfcommSocketToServiceRecord(UUID.fromString(STR_UUID));
                 socket.connect();
+                mInputStream = socket.getInputStream();
+                mOutputStream = socket.getOutputStream();
             } catch (IOException e) {
                 listener.onError(e);
             }
