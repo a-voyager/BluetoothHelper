@@ -93,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btn_receive).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mBtHelper.receiveMessage( new OnReceiveMessageListener() {
+                mBtHelper.receiveMessage(new OnReceiveMessageListener() {
                     @Override
                     public void onNewLine(String s) {
                         Log.d(TAG, s);

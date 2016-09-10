@@ -155,9 +155,11 @@ public class BtHelper {
             return;
         }
 
+        AcceptRunnable acceptRunnable = new AcceptRunnable(listener);
+        mExecutorService.submit(acceptRunnable);
 
-        ReadRunnable readRunnable = new ReadRunnable(listener);
-        mExecutorService.submit(readRunnable);
+//        ReadRunnable readRunnable = new ReadRunnable(listener, false);
+//        mExecutorService.submit(readRunnable);
     }
 
     private class AcceptRunnable implements Runnable {
@@ -176,6 +178,8 @@ public class BtHelper {
                 accept.connect();
                 mAcceptInputStream = accept.getInputStream();
                 mAcceptOutputStream = accept.getOutputStream();
+                ReadRunnable readRunnable = new ReadRunnable(mListener, true);
+                mExecutorService.submit(readRunnable);
             } catch (IOException e) {
                 mListener.onError(e);
             }
@@ -232,19 +236,27 @@ public class BtHelper {
     private class ReadRunnable implements Runnable {
 
         private OnReceiveMessageListener mListener;
+        private boolean mAccept;
 
-        public ReadRunnable(OnReceiveMessageListener listener) {
+        public ReadRunnable(OnReceiveMessageListener listener, boolean accept) {
             mListener = listener;
+            mAccept = accept;
         }
 
         @Override
         public void run() {
-            while (mInputStream != null && mReadable) ;
-            checkNotNull(mInputStream);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(mInputStream));
+            InputStream stream;
+            if (mAccept)
+                stream = mAcceptInputStream;
+            else
+                stream = mInputStream;
+
+            while (stream != null && mReadable) ;
+            checkNotNull(stream);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
             while (mReadable) {
                 try {
-                    while (mInputStream.available() == 0) ;
+                    while (stream.available() == 0) ;
                 } catch (IOException e) {
                     mListener.onConnectionLost(e);
                     break;
