@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * Created by wuhaojie on 2016/9/8 14:50.
  */
-public interface OnSearchDeviceListener extends OnErrorListener {
+public interface OnSearchDeviceListener extends IErrorListener {
     void onStartDiscovery();
 
     void onNewDeviceFounded(BluetoothDevice device);

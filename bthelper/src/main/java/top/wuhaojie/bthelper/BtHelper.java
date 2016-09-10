@@ -9,14 +9,20 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.text.TextUtils;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Created by wuhaojie on 2016/9/7 18:57.
@@ -128,18 +134,110 @@ public class BtHelper {
         }
     }
 
+    private Queue<MessageItem> mMessageQueue = new LinkedBlockingQueue<>();
 
-    private void sendMessage(BluetoothDevice device) {
+
+    public void sendMessage(BluetoothDevice device, MessageItem item, OnSendMessageListener listener) {
         // TODO: 2016/9/9
+        connectDevice(device.getAddress(), listener);
+        mMessageQueue.add(item);
+        WriteRunnable writeRunnable = new WriteRunnable(listener);
+        mExecutorService.submit(writeRunnable);
     }
 
 
-    private void receiveMessage(BluetoothDevice device) {
-
+    public void receiveMessage(BluetoothDevice device, OnReceiveMessageListener listener) {
+        connectDevice(device.getAddress(), listener);
+        ReadRunnable readRunnable = new ReadRunnable(listener);
+        mExecutorService.submit(readRunnable);
     }
 
 
-    private void connectDevice(String mac, OnErrorListener listener) {
+    private volatile boolean mWritable = true;
+
+    private class WriteRunnable implements Runnable {
+
+        private OnSendMessageListener listener;
+
+        public WriteRunnable(OnSendMessageListener listener) {
+            this.listener = listener;
+        }
+
+        @Override
+        public void run() {
+            while (mOutputStream != null && mWritable) ;
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(mOutputStream));
+
+            while (mWritable) {
+                MessageItem item = mMessageQueue.poll();
+
+                if (item.mTYPE == MessageItem.TYPE.STRING) {
+                    try {
+                        writer.write(item.text);
+                        writer.newLine();
+                        writer.flush();
+                    } catch (IOException e) {
+                        listener.onConnectionLost(e);
+                    }
+
+                } else if (item.mTYPE == MessageItem.TYPE.CHAR) {
+                    try {
+                        writer.write(item.data);
+                        writer.flush();
+                    } catch (IOException e) {
+                        listener.onConnectionLost(e);
+                    }
+                }
+            }
+
+        }
+    }
+
+
+    private volatile boolean mReadable = true;
+
+
+    private class ReadRunnable implements Runnable {
+
+        private OnReceiveMessageListener mListener;
+
+        public ReadRunnable(OnReceiveMessageListener listener) {
+            mListener = listener;
+        }
+
+        @Override
+        public void run() {
+            while (mInputStream != null && mReadable) ;
+            checkNotNull(mInputStream);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(mInputStream));
+            while (mReadable) {
+                try {
+                    while (mInputStream.available() == 0) ;
+                } catch (IOException e) {
+                    mListener.onConnectionLost(e);
+                }
+
+                while (mReadable) {
+
+                    try {
+                        String s = reader.readLine();
+                        mListener.onNewLine(s);
+                    } catch (IOException e) {
+                        mListener.onConnectionLost(e);
+                    }
+
+
+                }
+
+            }
+
+
+        }
+
+
+    }
+
+    private void connectDevice(String mac, IErrorListener listener) {
         if (mac == null || TextUtils.isEmpty(mac))
             throw new IllegalArgumentException("mac address is null or empty!");
         if (!BluetoothAdapter.checkBluetoothAddress(mac))
@@ -155,9 +253,9 @@ public class BtHelper {
 
     private class ConnectDeviceRunnable implements Runnable {
         private String mac;
-        private OnErrorListener listener;
+        private IErrorListener listener;
 
-        public ConnectDeviceRunnable(String mac, OnErrorListener listener) {
+        public ConnectDeviceRunnable(String mac, IErrorListener listener) {
             this.mac = mac;
             this.listener = listener;
         }
