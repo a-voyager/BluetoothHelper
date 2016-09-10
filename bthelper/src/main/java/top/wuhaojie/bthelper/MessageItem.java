@@ -15,4 +15,13 @@ public class MessageItem {
 
     TYPE mTYPE;
 
+    public MessageItem(String text) {
+        this.text = text;
+        mTYPE = TYPE.STRING;
+    }
+
+    public MessageItem(char[] data) {
+        this.data = data;
+        mTYPE = TYPE.CHAR;
+    }
 }

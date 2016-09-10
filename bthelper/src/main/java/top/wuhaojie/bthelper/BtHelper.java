@@ -2,6 +2,7 @@ package top.wuhaojie.bthelper;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -49,6 +50,8 @@ public class BtHelper {
     private ExecutorService mExecutorService = Executors.newCachedThreadPool();
     private InputStream mInputStream;
     private OutputStream mOutputStream;
+    private InputStream mAcceptInputStream;
+    private OutputStream mAcceptOutputStream;
 
     public static BtHelper getInstance(Context context) {
         if (sBtHelper == null) {
@@ -146,10 +149,37 @@ public class BtHelper {
     }
 
 
-    public void receiveMessage(BluetoothDevice device, OnReceiveMessageListener listener) {
-        connectDevice(device.getAddress(), listener);
+    public void receiveMessage(OnReceiveMessageListener listener) {
+        if (mBluetoothAdapter == null) {
+            listener.onError(new RuntimeException(DEVICE_HAS_NOT_BLUETOOTH_MODULE));
+            return;
+        }
+
+
         ReadRunnable readRunnable = new ReadRunnable(listener);
         mExecutorService.submit(readRunnable);
+    }
+
+    private class AcceptRunnable implements Runnable {
+
+        private OnReceiveMessageListener mListener;
+
+        public AcceptRunnable(OnReceiveMessageListener listener) {
+            mListener = listener;
+        }
+
+        @Override
+        public void run() {
+            try {
+                BluetoothServerSocket socket = mBluetoothAdapter.listenUsingRfcommWithServiceRecord("BT", UUID.fromString(STR_UUID));
+                BluetoothSocket accept = socket.accept();
+                accept.connect();
+                mAcceptInputStream = accept.getInputStream();
+                mAcceptOutputStream = accept.getOutputStream();
+            } catch (IOException e) {
+                mListener.onError(e);
+            }
+        }
     }
 
 
@@ -178,6 +208,7 @@ public class BtHelper {
                         writer.flush();
                     } catch (IOException e) {
                         listener.onConnectionLost(e);
+                        break;
                     }
 
                 } else if (item.mTYPE == MessageItem.TYPE.CHAR) {
@@ -186,6 +217,7 @@ public class BtHelper {
                         writer.flush();
                     } catch (IOException e) {
                         listener.onConnectionLost(e);
+                        break;
                     }
                 }
             }
@@ -215,6 +247,7 @@ public class BtHelper {
                     while (mInputStream.available() == 0) ;
                 } catch (IOException e) {
                     mListener.onConnectionLost(e);
+                    break;
                 }
 
                 while (mReadable) {
@@ -224,6 +257,7 @@ public class BtHelper {
                         mListener.onNewLine(s);
                     } catch (IOException e) {
                         mListener.onConnectionLost(e);
+                        break;
                     }
 
 
