@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.text.TextUtils;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -32,10 +33,12 @@ public class BtHelper {
 
     public static final String DEVICE_HAS_NOT_BLUETOOTH_MODULE = "device has not bluetooth module!";
     public static final String STR_UUID = "00001101-0000-1000-8000-00805F9B34FB";
+    public static final String TAG = "BtHelper";
     private Context mContext;
 
     //    get bluetooth adapter
-    private BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+//    private BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+    private BluetoothAdapter mBluetoothAdapter ;
 
     private Receiver mReceiver = new Receiver();
 
@@ -65,6 +68,7 @@ public class BtHelper {
 
     private BtHelper(Context context) {
         mContext = context;
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     }
 
 
@@ -154,13 +158,19 @@ public class BtHelper {
             listener.onError(new RuntimeException(DEVICE_HAS_NOT_BLUETOOTH_MODULE));
             return;
         }
+        ReadRunnable readRunnable = new ReadRunnable(listener, false);
+        mExecutorService.submit(readRunnable);
+    }
 
+    public void listenMessage(OnReceiveMessageListener listener) {
+        if (mBluetoothAdapter == null) {
+            listener.onError(new RuntimeException(DEVICE_HAS_NOT_BLUETOOTH_MODULE));
+            return;
+        }
         AcceptRunnable acceptRunnable = new AcceptRunnable(listener);
         mExecutorService.submit(acceptRunnable);
-
-//        ReadRunnable readRunnable = new ReadRunnable(listener, false);
-//        mExecutorService.submit(readRunnable);
     }
+
 
     private class AcceptRunnable implements Runnable {
 
@@ -174,8 +184,11 @@ public class BtHelper {
         public void run() {
             try {
                 BluetoothServerSocket socket = mBluetoothAdapter.listenUsingRfcommWithServiceRecord("BT", UUID.fromString(STR_UUID));
+//                BluetoothServerSocket socket = mBluetoothAdapter.listenUsingInsecureRfcommWithServiceRecord("BT", UUID.fromString(STR_UUID));
+                Log.d(TAG, "开始监听");
                 BluetoothSocket accept = socket.accept();
                 accept.connect();
+                Log.d(TAG, "开始连接");
                 mAcceptInputStream = accept.getInputStream();
                 mAcceptOutputStream = accept.getOutputStream();
                 ReadRunnable readRunnable = new ReadRunnable(mListener, true);
@@ -199,8 +212,10 @@ public class BtHelper {
 
         @Override
         public void run() {
+            Log.d(TAG, "准备写入");
             while (mOutputStream != null && mWritable) ;
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(mOutputStream));
+            Log.d(TAG, "开始写入");
 
             while (mWritable) {
                 MessageItem item = mMessageQueue.poll();
@@ -210,6 +225,7 @@ public class BtHelper {
                         writer.write(item.text);
                         writer.newLine();
                         writer.flush();
+                        Log.d(TAG, "写入: " + item.text);
                     } catch (IOException e) {
                         listener.onConnectionLost(e);
                         break;
@@ -310,13 +326,17 @@ public class BtHelper {
         public void run() {
             // always return a remote device
             BluetoothDevice remoteDevice = mBluetoothAdapter.getRemoteDevice(mac);
-
+            mBluetoothAdapter.cancelDiscovery();
             try {
-                BluetoothSocket socket = remoteDevice.createRfcommSocketToServiceRecord(UUID.fromString(STR_UUID));
-                socket.connect();
+                Log.d(TAG, "准备连接: " + remoteDevice.getAddress() + remoteDevice.getName());
+//                BluetoothSocket socket =  remoteDevice.createRfcommSocketToServiceRecord(UUID.fromString(STR_UUID));
+//                BluetoothSocket socket =  (BluetoothSocket) remoteDevice.getClass().getMethod("createRfcommSocket", new Class[] {int.class}).invoke(remoteDevice,1);
+                BluetoothSocket socket = remoteDevice.createInsecureRfcommSocketToServiceRecord(UUID.fromString(STR_UUID));
+//                if(!socket.isConnected())
+                    socket.connect();
                 mInputStream = socket.getInputStream();
                 mOutputStream = socket.getOutputStream();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 listener.onError(e);
             }
         }
