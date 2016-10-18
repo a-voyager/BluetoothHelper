@@ -73,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
 //                }
 
                 MessageItem item = new MessageItem(new char[]{0x01});
-                mBtHelperClient.sendMessage(mRemoteDevice, item, new OnSendMessageListener() {
+                mBtHelperClient.sendMessage("20:15:03:18:08:63", item, new OnSendMessageListener() {
                     @Override
                     public void onSuccess(String response) {
                         Log.d(TAG, response);

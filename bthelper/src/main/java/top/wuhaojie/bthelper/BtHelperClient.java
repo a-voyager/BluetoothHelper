@@ -7,6 +7,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -33,6 +36,9 @@ public class BtHelperClient {
     public static final String DEVICE_HAS_NOT_BLUETOOTH_MODULE = "device has not bluetooth module!";
     //    public static final String STR_UUID = "00001101-0000-1000-8000-00805F9B34FB";
     public static final String TAG = "BtHelperClient";
+    public static final int HANDLER_WHAT_NEW_MSG = 1;
+    public static final int DEFAULT_BUFFER_SIZE = 256;
+    public static final int HANDLER_WHAT_NEW_RESPONSE = 2;
     private Context mContext;
 
     private enum STATUS {
@@ -157,9 +163,13 @@ public class BtHelperClient {
 
     public void sendMessage(BluetoothDevice device, MessageItem item, OnSendMessageListener listener, boolean needResponse) {
         // TODO: 2016/9/9
+        sendMessage(device.getAddress(), item, listener, needResponse);
+    }
+
+    public void sendMessage(String mac, MessageItem item, OnSendMessageListener listener, boolean needResponse) {
         // if not connected
         if (mCurrStatus != STATUS.CONNECTED)
-            connectDevice(device.getAddress(), listener);
+            connectDevice(mac, listener);
         mMessageQueue.add(item);
         WriteRunnable writeRunnable = new WriteRunnable(listener, needResponse);
         mExecutorService.submit(writeRunnable);
@@ -223,6 +233,20 @@ public class BtHelperClient {
         private boolean needResponse;
 
 
+        private Handler mHandler = new Handler(Looper.getMainLooper()) {
+            @Override
+            public void handleMessage(Message msg) {
+                super.handleMessage(msg);
+                switch (msg.what) {
+                    case HANDLER_WHAT_NEW_RESPONSE:
+                        String s = (String) msg.obj;
+                        listener.onSuccess(s);
+                        break;
+                }
+            }
+        };
+
+
         public WriteRunnable(OnSendMessageListener listener, boolean needResponse) {
             this.listener = listener;
             this.needResponse = needResponse;
@@ -235,8 +259,10 @@ public class BtHelperClient {
             // 并且要写入线程未被取消
             while (mCurrStatus != STATUS.CONNECTED && mWritable) ;
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(mOutputStream));
-            BufferedReader reader = new BufferedReader(new InputStreamReader(mInputStream));
+//            BufferedReader reader = new BufferedReader(new InputStreamReader(mInputStream));
             Log.d(TAG, "开始写入");
+            Message message = new Message();
+            message.what = HANDLER_WHAT_NEW_RESPONSE;
 
             while (mWritable) {
                 MessageItem item = mMessageQueue.poll();
@@ -267,8 +293,22 @@ public class BtHelperClient {
                 // ----- Read For Response -----
                 if (!needResponse) continue;
                 try {
-                    String s = reader.readLine();
-                    listener.onSuccess(s);
+//                    String s = reader.readLine();
+                    byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
+                    StringBuilder builder = new StringBuilder();
+
+                    while (mInputStream.available() == 0) ;
+
+                    while (true) {
+                        int num = mInputStream.read(buffer);
+                        String s = new String(buffer, 0, num);
+                        builder.append(s);
+                        if (mInputStream.available() == 0) break;
+
+                    }
+                    message.obj = builder.toString();
+                    mHandler.sendMessage(message);
+
                 } catch (IOException e) {
 //                    e.printStackTrace();
                     listener.onConnectionLost(e);
@@ -324,6 +364,67 @@ public class BtHelperClient {
 
             }
 
+
+        }
+
+
+    }
+
+    private class ReadRunnable_ implements Runnable {
+
+        private OnReceiveMessageListener mListener;
+
+        public ReadRunnable_(OnReceiveMessageListener listener) {
+            mListener = listener;
+        }
+
+        private Handler mHandler = new Handler(Looper.getMainLooper()) {
+            @Override
+            public void handleMessage(Message msg) {
+                super.handleMessage(msg);
+                switch (msg.what) {
+                    case HANDLER_WHAT_NEW_MSG:
+                        String s = (String) msg.obj;
+                        mListener.onNewLine(s);
+                        break;
+                }
+            }
+        };
+
+        @Override
+        public void run() {
+            InputStream stream = mInputStream;
+
+            while (mCurrStatus != STATUS.CONNECTED && mReadable) ;
+            checkNotNull(stream);
+            byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
+            StringBuilder builder = new StringBuilder();
+            Message message = new Message();
+            message.what = HANDLER_WHAT_NEW_MSG;
+            int n = 0;
+//            BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+            while (mReadable) {
+
+                try {
+                    while (stream.available() == 0) ;
+
+                    while (mReadable) {
+                        int num = stream.read(buffer);
+                        n = 0;
+                        String s = new String(buffer, 0, num);
+                        builder.append(s);
+                        if (stream.available() == 0) break;
+
+                    }
+                    message.obj = builder.toString();
+                    mHandler.sendMessage(message);
+
+
+                } catch (IOException e) {
+                    mListener.onConnectionLost(e);
+                    mCurrStatus = STATUS.FREE;
+                }
+            }
 
         }
 
