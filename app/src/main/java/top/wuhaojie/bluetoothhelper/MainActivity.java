@@ -6,6 +6,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 
+import java.util.Arrays;
 import java.util.List;
 
 import top.wuhaojie.bthelper.BtHelperClient;
@@ -72,11 +73,14 @@ public class MainActivity extends AppCompatActivity {
 //                    return;
 //                }
 
-                MessageItem item = new MessageItem(new char[]{0x01});
+                MessageItem item = new MessageItem(new char[]{0x01, 0x02, 0x03});
                 mBtHelperClient.sendMessage("20:15:03:18:08:63", item, new OnSendMessageListener() {
                     @Override
                     public void onSuccess(String response) {
+                        byte[] bytes = response.getBytes();
                         Log.d(TAG, response);
+                        Log.d(TAG, Arrays.toString(bytes));
+                        Log.d(TAG, bytesToHexString(bytes));
                     }
 
                     @Override
@@ -125,4 +129,17 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         mBtHelperClient.dispose();
     }
+
+    public static final String bytesToHexString(byte[] bArray) {
+        StringBuffer sb = new StringBuffer(bArray.length);
+        String sTemp;
+        for (int i = 0; i < bArray.length; i++) {
+            sTemp = Integer.toHexString(0xFF & bArray[i]);
+            if (sTemp.length() < 2)
+                sb.append(0);
+            sb.append(sTemp.toUpperCase());
+        }
+        return sb.toString();
+    }
+
 }
