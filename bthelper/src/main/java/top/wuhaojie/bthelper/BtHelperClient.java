@@ -13,11 +13,9 @@ import android.os.Message;
 import android.text.TextUtils;
 import android.util.Log;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
@@ -40,6 +38,7 @@ public class BtHelperClient {
     public static final int DEFAULT_BUFFER_SIZE = 256;
     public static final int HANDLER_WHAT_NEW_RESPONSE = 2;
     private Context mContext;
+    private BluetoothSocket mSocket;
 
     private enum STATUS {
         DISCOVERING,
@@ -54,7 +53,7 @@ public class BtHelperClient {
 //    private BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     private BluetoothAdapter mBluetoothAdapter;
 
-    private Receiver mReceiver = new Receiver();
+    private volatile Receiver mReceiver = new Receiver();
 
     private List<BluetoothDevice> mBondedList = new ArrayList<>();
     private List<BluetoothDevice> mNewList = new ArrayList<>();
@@ -108,6 +107,8 @@ public class BtHelperClient {
             return;
         }
 
+        if (mReceiver == null) mReceiver = new Receiver();
+
         // ACTION_FOUND
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         mContext.registerReceiver(mReceiver, filter);
@@ -157,14 +158,13 @@ public class BtHelperClient {
 
     private Queue<MessageItem> mMessageQueue = new LinkedBlockingQueue<>();
 
-    public void sendMessage(BluetoothDevice device, MessageItem item, OnSendMessageListener listener) {
-        sendMessage(device, item, listener, false);
+    public void sendMessage(String mac, MessageItem item, OnSendMessageListener listener) {
+        sendMessage(mac, item, listener, false);
     }
 
-    public void sendMessage(BluetoothDevice device, MessageItem item, OnSendMessageListener listener, boolean needResponse) {
-        // TODO: 2016/9/9
-        sendMessage(device.getAddress(), item, listener, needResponse);
-    }
+//    public void sendMessage(BluetoothDevice device, MessageItem item, OnSendMessageListener listener, boolean needResponse) {
+//        sendMessage(device.getAddress(), item, listener, needResponse);
+//    }
 
     public void sendMessage(String mac, MessageItem item, OnSendMessageListener listener, boolean needResponse) {
         // if not connected
@@ -181,7 +181,7 @@ public class BtHelperClient {
             listener.onError(new RuntimeException(DEVICE_HAS_NOT_BLUETOOTH_MODULE));
             return;
         }
-        ReadRunnable readRunnable = new ReadRunnable(listener);
+        ReadRunnable_ readRunnable = new ReadRunnable_(listener);
         mExecutorService.submit(readRunnable);
     }
 
@@ -254,13 +254,14 @@ public class BtHelperClient {
 
         @Override
         public void run() {
-            Log.d(TAG, "准备写入");
+            mWritable = true;
+//            Log.d(TAG, "准备写入");
 //            while (mOutputStream != null && mWritable) ;
             // 并且要写入线程未被取消
             while (mCurrStatus != STATUS.CONNECTED && mWritable) ;
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(mOutputStream));
 //            BufferedReader reader = new BufferedReader(new InputStreamReader(mInputStream));
-            Log.d(TAG, "开始写入");
+//            Log.d(TAG, "开始写入");
             Message message = new Message();
             message.what = HANDLER_WHAT_NEW_RESPONSE;
 
@@ -272,7 +273,7 @@ public class BtHelperClient {
                         writer.write(item.text);
                         writer.newLine();
                         writer.flush();
-                        Log.d(TAG, "写入: " + item.text);
+                        Log.d(TAG, "send: " + item.text);
                     } catch (IOException e) {
                         listener.onConnectionLost(e);
                         mCurrStatus = STATUS.FREE;
@@ -324,51 +325,51 @@ public class BtHelperClient {
     private volatile boolean mReadable = true;
 
 
-    private class ReadRunnable implements Runnable {
-
-        private OnReceiveMessageListener mListener;
-
-        public ReadRunnable(OnReceiveMessageListener listener) {
-            mListener = listener;
-        }
-
-        @Override
-        public void run() {
-            InputStream stream = mInputStream;
-
-            while (mCurrStatus != STATUS.CONNECTED && mReadable) ;
-            checkNotNull(stream);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-            while (mReadable) {
-                try {
-                    while (stream.available() == 0) ;
-                } catch (IOException e) {
-                    mListener.onConnectionLost(e);
-                    mCurrStatus = STATUS.FREE;
-                    break;
-                }
-
-                while (mReadable) {
-
-                    try {
-                        String s = reader.readLine();
-                        mListener.onNewLine(s);
-                    } catch (IOException e) {
-                        mListener.onConnectionLost(e);
-                        mCurrStatus = STATUS.FREE;
-                        break;
-                    }
-
-
-                }
-
-            }
-
-
-        }
-
-
-    }
+//    private class ReadRunnable implements Runnable {
+//
+//        private OnReceiveMessageListener mListener;
+//
+//        public ReadRunnable(OnReceiveMessageListener listener) {
+//            mListener = listener;
+//        }
+//
+//        @Override
+//        public void run() {
+//            InputStream stream = mInputStream;
+//
+//            while (mCurrStatus != STATUS.CONNECTED && mReadable) ;
+//            checkNotNull(stream);
+//            BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+//            while (mReadable) {
+//                try {
+//                    while (stream.available() == 0) ;
+//                } catch (IOException e) {
+//                    mListener.onConnectionLost(e);
+//                    mCurrStatus = STATUS.FREE;
+//                    break;
+//                }
+//
+//                while (mReadable) {
+//
+//                    try {
+//                        String s = reader.readLine();
+//                        mListener.onNewLine(s);
+//                    } catch (IOException e) {
+//                        mListener.onConnectionLost(e);
+//                        mCurrStatus = STATUS.FREE;
+//                        break;
+//                    }
+//
+//
+//                }
+//
+//            }
+//
+//
+//        }
+//
+//
+//    }
 
     private class ReadRunnable_ implements Runnable {
 
@@ -393,6 +394,7 @@ public class BtHelperClient {
 
         @Override
         public void run() {
+            mReadable = true;
             InputStream stream = mInputStream;
 
             while (mCurrStatus != STATUS.CONNECTED && mReadable) ;
@@ -465,11 +467,11 @@ public class BtHelperClient {
                 Log.d(TAG, "准备连接: " + remoteDevice.getAddress() + remoteDevice.getName());
 //                BluetoothSocket socket =  remoteDevice.createRfcommSocketToServiceRecord(UUID.fromString(STR_UUID));
 //                BluetoothSocket socket =  (BluetoothSocket) remoteDevice.getClass().getMethod("createRfcommSocket", new Class[] {int.class}).invoke(remoteDevice,1);
-                BluetoothSocket socket = remoteDevice.createInsecureRfcommSocketToServiceRecord(UUID.fromString(Constants.STR_UUID));
+                mSocket = remoteDevice.createInsecureRfcommSocketToServiceRecord(UUID.fromString(Constants.STR_UUID));
 //                if(!socket.isConnected())
-                socket.connect();
-                mInputStream = socket.getInputStream();
-                mOutputStream = socket.getOutputStream();
+                mSocket.connect();
+                mInputStream = mSocket.getInputStream();
+                mOutputStream = mSocket.getOutputStream();
                 mCurrStatus = STATUS.CONNECTED;
             } catch (Exception e) {
                 listener.onError(e);
@@ -489,15 +491,26 @@ public class BtHelperClient {
             throw new NullPointerException();
     }
 
-    public void dispose() {
+    public void close() {
         if (mBluetoothAdapter != null)
             mBluetoothAdapter.cancelDiscovery();
 
         // unregister
-        if (mNeed2unRegister)
+        if (mNeed2unRegister) {
             mContext.unregisterReceiver(mReceiver);
+            mNeed2unRegister = !mNeed2unRegister;
+        }
 
-        mOnSearchDeviceListener = null;
+        mWritable = false;
+        mReadable = false;
+
+        if (mSocket != null) try {
+            mSocket.close();
+        } catch (IOException e) {
+            mSocket = null;
+        }
+
+//        mOnSearchDeviceListener = null;
 
         mNewList = null;
         mBondedList = null;

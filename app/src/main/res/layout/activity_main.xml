@@ -15,17 +15,17 @@
         android:id="@+id/btn_search"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="搜索"/>
+        android:text="搜索设备"/>
 
     <Button
         android:id="@+id/btn_send"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="发送"/>
+        android:text="发送数据"/>
 
     <Button
-        android:id="@+id/btn_receive"
+        android:id="@+id/btn_close"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="接收"/>
+        android:text="断开连接"/>
 </LinearLayout>
