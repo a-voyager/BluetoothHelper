@@ -21,11 +21,6 @@
         android:id="@+id/btn_send"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="发送数据"/>
+        android:text="发送指令"/>
 
-    <Button
-        android:id="@+id/btn_close"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="断开连接"/>
 </LinearLayout>

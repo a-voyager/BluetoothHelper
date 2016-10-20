@@ -148,7 +148,7 @@ There are two ways:
 
         @Override
         public boolean isCorrect(String response) {
-            return response.length() == 5;
+            return response.trim().length() >= 5;
         }
 
  });

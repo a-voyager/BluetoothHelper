@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
 import java.util.List;
 
@@ -31,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
         btHelperClient.setFilter(new Filter() {
             @Override
             public boolean isCorrect(String response) {
-                return response.length() == 5;
+                return response.trim().length() >= 5;
             }
         });
 
@@ -72,10 +73,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                MessageItem item = new MessageItem("Hello");
+                MessageItem item = new MessageItem("Hello World");
                 btHelperClient.sendMessage("20:15:03:18:08:63", item, true, new OnSendMessageListener() {
                     @Override
                     public void onSuccess(int status, String response) {
+                        Toast.makeText(MainActivity.this, "收到设备回应信息: " + response, Toast.LENGTH_SHORT).show();
                     }
 
                     @Override
