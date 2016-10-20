@@ -4,6 +4,8 @@
 
 这是一个能够让你应用的蓝牙操作(特别是手机通过蓝牙控制物联网智能硬件设备)变得 **如此简洁**!
 
+![image](https://github.com/a-voyager/BluetoothHelper/raw/master/imgs/ble_icon.png)
+
 > 感兴趣的话就别忘记给个Start哦 :）
 
 ## 特点

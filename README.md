@@ -4,6 +4,8 @@
 
 A library makes your app's bluetooth operation(for Smart Iot Hardware especially) **so easy**!
 
+![image](https://github.com/a-voyager/BluetoothHelper/raw/master/imgs/ble_icon.png)
+
 > Don't forget give me a star :）
 
 ## Feature
