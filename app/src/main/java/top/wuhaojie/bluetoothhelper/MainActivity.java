@@ -5,9 +5,7 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
-import android.widget.Toast;
 
-import java.util.Arrays;
 import java.util.List;
 
 import top.wuhaojie.bthelper.BtHelperClient;
@@ -19,18 +17,18 @@ import top.wuhaojie.bthelper.OnSendMessageListener;
 public class MainActivity extends AppCompatActivity {
 
     public static final String TAG = "MainActivity";
-    private BtHelperClient mBtHelperClient;
+    private BtHelperClient btHelperClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mBtHelperClient = BtHelperClient.from(MainActivity.this);
+        btHelperClient = BtHelperClient.from(MainActivity.this);
 
-        mBtHelperClient.requestEnableBt();
+        btHelperClient.requestEnableBt();
 
-        mBtHelperClient.setFilter(new Filter() {
+        btHelperClient.setFilter(new Filter() {
             @Override
             public boolean isCorrect(String response) {
                 return response.length() == 5;
@@ -42,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
 
 
-                mBtHelperClient.searchDevices(new OnSearchDeviceListener() {
+                btHelperClient.searchDevices(new OnSearchDeviceListener() {
                     @Override
                     public void onStartDiscovery() {
                         Log.d(TAG, "onStartDiscovery()");
@@ -75,14 +73,9 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
 
                 MessageItem item = new MessageItem("Hello");
-                mBtHelperClient.sendMessage("20:15:03:18:08:63", item, new OnSendMessageListener() {
+                btHelperClient.sendMessage("20:15:03:18:08:63", item, true, new OnSendMessageListener() {
                     @Override
                     public void onSuccess(int status, String response) {
-                        byte[] bytes = response.getBytes();
-                        Log.d(TAG, status + ": " + response);
-                        Log.d(TAG, Arrays.toString(bytes));
-                        Log.d(TAG, bytesToHexString(bytes));
-                        Toast.makeText(MainActivity.this, response, Toast.LENGTH_SHORT).show();
                     }
 
                     @Override
@@ -94,16 +87,8 @@ public class MainActivity extends AppCompatActivity {
                     public void onError(Exception e) {
                         e.printStackTrace();
                     }
-                }, true);
+                });
 
-            }
-        });
-
-
-        findViewById(R.id.btn_close).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mBtHelperClient.close();
             }
         });
 
@@ -113,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mBtHelperClient.close();
+        btHelperClient.close();
     }
 
     public static final String bytesToHexString(byte[] bArray) {

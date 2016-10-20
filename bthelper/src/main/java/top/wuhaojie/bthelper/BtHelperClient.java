@@ -189,7 +189,7 @@ public class BtHelperClient {
      * @param listener lister for the sending process
      */
     public void sendMessage(String mac, MessageItem item, OnSendMessageListener listener) {
-        sendMessage(mac, item, listener, false);
+        sendMessage(mac, item, false, listener);
     }
 
 
@@ -204,7 +204,7 @@ public class BtHelperClient {
      * @param listener     lister for the sending process
      * @param needResponse if need to obtain a response from the remote device
      */
-    public void sendMessage(String mac, MessageItem item, OnSendMessageListener listener, boolean needResponse) {
+    public void sendMessage(String mac, MessageItem item, boolean needResponse, OnSendMessageListener listener) {
         // if not connected
         if (mCurrStatus != STATUS.CONNECTED)
             connectDevice(mac, listener);
