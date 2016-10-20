@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import top.wuhaojie.bthelper.BtHelperClient;
+import top.wuhaojie.bthelper.Filter;
 import top.wuhaojie.bthelper.MessageItem;
 import top.wuhaojie.bthelper.OnSearchDeviceListener;
 import top.wuhaojie.bthelper.OnSendMessageListener;
@@ -19,16 +20,22 @@ public class MainActivity extends AppCompatActivity {
 
     public static final String TAG = "MainActivity";
     private BtHelperClient mBtHelperClient;
-    private BluetoothDevice mRemoteDevice;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mBtHelperClient = BtHelperClient.getInstance(MainActivity.this);
+        mBtHelperClient = BtHelperClient.from(MainActivity.this);
 
         mBtHelperClient.requestEnableBt();
+
+        mBtHelperClient.setFilter(new Filter() {
+            @Override
+            public boolean isCorrect(String response) {
+                return response.length() == 5;
+            }
+        });
 
         findViewById(R.id.btn_search).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -44,7 +51,6 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onNewDeviceFounded(BluetoothDevice device) {
                         Log.d(TAG, "new device: " + device.getName() + " " + device.getAddress());
-                        mRemoteDevice = device;
                     }
 
                     @Override
@@ -68,15 +74,15 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                MessageItem item = new MessageItem(new char[]{0xEF, 0x0F, 0xAB});
+                MessageItem item = new MessageItem("Hello");
                 mBtHelperClient.sendMessage("20:15:03:18:08:63", item, new OnSendMessageListener() {
                     @Override
-                    public void onSuccess(String response) {
+                    public void onSuccess(int status, String response) {
                         byte[] bytes = response.getBytes();
-                        Log.d(TAG, response);
+                        Log.d(TAG, status + ": " + response);
                         Log.d(TAG, Arrays.toString(bytes));
                         Log.d(TAG, bytesToHexString(bytes));
-                        Toast.makeText(MainActivity.this, bytesToHexString(bytes), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, response, Toast.LENGTH_SHORT).show();
                     }
 
                     @Override
@@ -93,36 +99,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-//        findViewById(R.id.btn_receive).setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                mBtHelperClient.receiveMessage(new OnReceiveMessageListener() {
-//                    @Override
-//                    public void onNewLine(String s) {
-//                        Log.d(TAG, s);
-//                    }
-//
-//                    @Override
-//                    public void onConnectionLost(Exception e) {
-//                        e.printStackTrace();
-//                    }
-//
-//                    @Override
-//                    public void onError(Exception e) {
-//                        e.printStackTrace();
-//                    }
-//                });
-//
-//            }
-//        });
-
 
         findViewById(R.id.btn_close).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 mBtHelperClient.close();
-
-
             }
         });
 

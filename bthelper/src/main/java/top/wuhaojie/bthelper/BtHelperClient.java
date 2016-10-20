@@ -27,16 +27,19 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
+ * Bluetooth Helper as a Client.
  * Created by wuhaojie on 2016/9/7 18:57.
  */
 public class BtHelperClient {
 
-    public static final String DEVICE_HAS_NOT_BLUETOOTH_MODULE = "device has not bluetooth module!";
-    //    public static final String STR_UUID = "00001101-0000-1000-8000-00805F9B34FB";
-    public static final String TAG = "BtHelperClient";
-    public static final int HANDLER_WHAT_NEW_MSG = 1;
-    public static final int DEFAULT_BUFFER_SIZE = 256;
-    public static final int HANDLER_WHAT_NEW_RESPONSE = 2;
+    private static final String DEVICE_HAS_NOT_BLUETOOTH_MODULE = "device has not bluetooth module!";
+    private static final String TAG = BtHelperClient.class.getSimpleName();
+
+    private static final int HANDLER_WHAT_NEW_MSG = 1;
+    private static final int HANDLER_WHAT_NEW_RESPONSE = 2;
+
+    private static final int DEFAULT_BUFFER_SIZE = 256;
+
     private Context mContext;
     private BluetoothSocket mSocket;
 
@@ -48,9 +51,6 @@ public class BtHelperClient {
 
     private volatile STATUS mCurrStatus = STATUS.FREE;
 
-
-    //    get bluetooth adapter
-//    private BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     private BluetoothAdapter mBluetoothAdapter;
 
     private volatile Receiver mReceiver = new Receiver();
@@ -66,10 +66,17 @@ public class BtHelperClient {
     private ExecutorService mExecutorService = Executors.newCachedThreadPool();
     private InputStream mInputStream;
     private OutputStream mOutputStream;
-    private InputStream mAcceptInputStream;
-    private OutputStream mAcceptOutputStream;
+//    private InputStream mAcceptInputStream;
+//    private OutputStream mAcceptOutputStream;
 
-    public static BtHelperClient getInstance(Context context) {
+
+    /**
+     * Obtains the BtHelperClient from the given context.
+     *
+     * @param context context
+     * @return an instance of BtHelperClient
+     */
+    public static BtHelperClient from(Context context) {
         if (sBtHelperClient == null) {
             synchronized (BtHelperClient.class) {
                 if (sBtHelperClient == null)
@@ -79,12 +86,21 @@ public class BtHelperClient {
         return sBtHelperClient;
     }
 
+    /**
+     * private constructor for singleton
+     *
+     * @param context context
+     */
     private BtHelperClient(Context context) {
         mContext = context.getApplicationContext();
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     }
 
 
+    /**
+     * Request for enable the device's bluetooth asynchronously.
+     * Throw a NullPointerException if the device doesn't have a bluetooth module.
+     */
     public void requestEnableBt() {
         if (mBluetoothAdapter == null) {
             throw new NullPointerException(DEVICE_HAS_NOT_BLUETOOTH_MODULE);
@@ -94,6 +110,11 @@ public class BtHelperClient {
     }
 
 
+    /**
+     * discovery the devices.
+     *
+     * @param listener listener for the process
+     */
     public void searchDevices(OnSearchDeviceListener listener) {
 
         checkNotNull(listener);
@@ -158,14 +179,31 @@ public class BtHelperClient {
 
     private Queue<MessageItem> mMessageQueue = new LinkedBlockingQueue<>();
 
+    /**
+     * Send a message to a remote device.
+     * If the local device did't connected to the remote devices, it will call connectDevice(), then send the message.
+     * If you want to get a response from the remote device, call another overload method, this method default will not obtain a response.
+     *
+     * @param mac      the remote device's mac address
+     * @param item     the message need to send
+     * @param listener lister for the sending process
+     */
     public void sendMessage(String mac, MessageItem item, OnSendMessageListener listener) {
         sendMessage(mac, item, listener, false);
     }
 
-//    public void sendMessage(BluetoothDevice device, MessageItem item, OnSendMessageListener listener, boolean needResponse) {
-//        sendMessage(device.getAddress(), item, listener, needResponse);
-//    }
 
+    /**
+     * Send a message to a remote device.
+     * If the local device did't connected to the remote devices, it will call connectDevice(), then send the message.
+     * You can obtain a response from the remote device, just as http.
+     * However, it will blocked if didn't get response from the remote device.
+     *
+     * @param mac          the remote device's mac address
+     * @param item         the message need to send
+     * @param listener     lister for the sending process
+     * @param needResponse if need to obtain a response from the remote device
+     */
     public void sendMessage(String mac, MessageItem item, OnSendMessageListener listener, boolean needResponse) {
         // if not connected
         if (mCurrStatus != STATUS.CONNECTED)
@@ -176,7 +214,9 @@ public class BtHelperClient {
     }
 
 
-    public void receiveMessage(OnReceiveMessageListener listener) {
+    // ---------- NEED TO TEST AND FIX ----------
+    // ---------- NOT WORK NOW ----------
+    private void receiveMessage(OnReceiveMessageListener listener) {
         if (mBluetoothAdapter == null) {
             listener.onError(new RuntimeException(DEVICE_HAS_NOT_BLUETOOTH_MODULE));
             return;
@@ -225,6 +265,20 @@ public class BtHelperClient {
 //    }
 
 
+    private Filter mFilter;
+
+    /**
+     * Set a filter use to check if a given response is an expect data.
+     * Throw a NullPointerException if the parameter is null.
+     *
+     * @param filter a custom filter
+     */
+    public void setFilter(Filter filter) {
+        if (filter == null)
+            throw new NullPointerException("parameter filter is null");
+        mFilter = filter;
+    }
+
     private volatile boolean mWritable = true;
 
     private class WriteRunnable implements Runnable {
@@ -240,7 +294,8 @@ public class BtHelperClient {
                 switch (msg.what) {
                     case HANDLER_WHAT_NEW_RESPONSE:
                         String s = (String) msg.obj;
-                        listener.onSuccess(s);
+                        int status = msg.arg1;
+                        listener.onSuccess(status, s);
                         break;
                 }
             }
@@ -256,7 +311,6 @@ public class BtHelperClient {
         public void run() {
             mWritable = true;
 //            Log.d(TAG, "准备写入");
-//            while (mOutputStream != null && mWritable) ;
             // 并且要写入线程未被取消
             while (mCurrStatus != STATUS.CONNECTED && mWritable) ;
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(mOutputStream));
@@ -264,6 +318,7 @@ public class BtHelperClient {
 //            Log.d(TAG, "开始写入");
             Message message = new Message();
             message.what = HANDLER_WHAT_NEW_RESPONSE;
+            message.arg1 = Constants.STATUS_OK;
 
             while (mWritable) {
                 MessageItem item = mMessageQueue.poll();
@@ -275,7 +330,8 @@ public class BtHelperClient {
                         writer.flush();
                         Log.d(TAG, "send: " + item.text);
                     } catch (IOException e) {
-                        listener.onConnectionLost(e);
+                        if (listener != null)
+                            listener.onConnectionLost(e);
                         mCurrStatus = STATUS.FREE;
                         break;
                     }
@@ -285,7 +341,8 @@ public class BtHelperClient {
                         writer.write(item.data);
                         writer.flush();
                     } catch (IOException e) {
-                        listener.onConnectionLost(e);
+                        if (listener != null)
+                            listener.onConnectionLost(e);
                         mCurrStatus = STATUS.FREE;
                         break;
                     }
@@ -307,12 +364,25 @@ public class BtHelperClient {
                         if (mInputStream.available() == 0) break;
 
                     }
-                    message.obj = builder.toString();
-                    mHandler.sendMessage(message);
+                    String s = builder.toString().trim();
+                    if (mFilter != null) {
+                        if (mFilter.isCorrect(s)) {
+                            message.obj = s;
+                            mHandler.sendMessage(message);
+                        } else {
+                            message.obj = "";
+                            message.arg1 = Constants.STATUS_ERROR;
+                            mHandler.sendMessage(message);
+                        }
+                    } else {
+                        message.obj = s;
+                        mHandler.sendMessage(message);
+                    }
 
                 } catch (IOException e) {
 //                    e.printStackTrace();
-                    listener.onConnectionLost(e);
+                    if (listener != null)
+                        listener.onConnectionLost(e);
                     mCurrStatus = STATUS.FREE;
                 }
 
@@ -464,7 +534,7 @@ public class BtHelperClient {
             mBluetoothAdapter.cancelDiscovery();
             mCurrStatus = STATUS.FREE;
             try {
-                Log.d(TAG, "准备连接: " + remoteDevice.getAddress() + remoteDevice.getName());
+                Log.d(TAG, "prepare to connect: " + remoteDevice.getAddress() + " " + remoteDevice.getName());
 //                BluetoothSocket socket =  remoteDevice.createRfcommSocketToServiceRecord(UUID.fromString(STR_UUID));
 //                BluetoothSocket socket =  (BluetoothSocket) remoteDevice.getClass().getMethod("createRfcommSocket", new Class[] {int.class}).invoke(remoteDevice,1);
                 mSocket = remoteDevice.createInsecureRfcommSocketToServiceRecord(UUID.fromString(Constants.STR_UUID));
@@ -474,7 +544,8 @@ public class BtHelperClient {
                 mOutputStream = mSocket.getOutputStream();
                 mCurrStatus = STATUS.CONNECTED;
             } catch (Exception e) {
-                listener.onError(e);
+                if (listener != null)
+                    listener.onError(e);
                 try {
                     mInputStream.close();
                     mOutputStream.close();
@@ -491,6 +562,10 @@ public class BtHelperClient {
             throw new NullPointerException();
     }
 
+    /**
+     * Closes the connection and releases any system resources associated
+     * with the stream.
+     */
     public void close() {
         if (mBluetoothAdapter != null)
             mBluetoothAdapter.cancelDiscovery();
