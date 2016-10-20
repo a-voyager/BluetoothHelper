@@ -44,7 +44,7 @@ There are two ways:
  	}
  	// Add the dependency
 	dependencies {
-
+	    compile 'com.github.a-voyager:BluetoothHelper:b3b439cf9b'
 	}
  ```
 
