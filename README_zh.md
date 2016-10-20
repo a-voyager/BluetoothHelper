@@ -44,7 +44,7 @@
  	}
  	// 这个加入到应用module的 build.gradle
 	dependencies {
-	    compile 'com.github.a-voyager:BluetoothHelper:b3b439cf9b'
+	    compile 'com.github.a-voyager:BluetoothHelper:f71d40a98b'
 	}
  ```
 
