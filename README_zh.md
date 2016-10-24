@@ -115,7 +115,7 @@
          }
 
          @Override
-         public void onNewDeviceFounded(BluetoothDevice device) {
+         public void onNewDeviceFound(BluetoothDevice device) {
              // 当寻找到一个新设备时回调
 
              Log.d(TAG, "new device: " + device.getName() + " " + device.getAddress());

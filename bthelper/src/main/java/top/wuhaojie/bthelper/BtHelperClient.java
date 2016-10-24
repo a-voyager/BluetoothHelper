@@ -162,7 +162,7 @@ public class BtHelperClient {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 
                 if (mOnSearchDeviceListener != null)
-                    mOnSearchDeviceListener.onNewDeviceFounded(device);
+                    mOnSearchDeviceListener.onNewDeviceFound(device);
 
                 if (device.getBondState() == BluetoothDevice.BOND_NONE) {
                     mNewList.add(device);

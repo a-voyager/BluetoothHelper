@@ -19,7 +19,7 @@ public interface OnSearchDeviceListener extends IErrorListener {
      *
      * @param device the new device
      */
-    void onNewDeviceFounded(BluetoothDevice device);
+    void onNewDeviceFound(BluetoothDevice device);
 
     /**
      * Call when the discovery process completed.

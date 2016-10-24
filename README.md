@@ -115,7 +115,7 @@ There are two ways:
          }
 
          @Override
-         public void onNewDeviceFounded(BluetoothDevice device) {
+         public void onNewDeviceFound(BluetoothDevice device) {
              // Call when found a new device
 
              Log.d(TAG, "new device: " + device.getName() + " " + device.getAddress());

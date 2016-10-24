@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     @Override
-                    public void onNewDeviceFounded(BluetoothDevice device) {
+                    public void onNewDeviceFound(BluetoothDevice device) {
                         Log.d(TAG, "new device: " + device.getName() + " " + device.getAddress());
                     }
 
