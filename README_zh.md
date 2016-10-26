@@ -1,12 +1,12 @@
 # 蓝牙操作库
 
-[中文](https://github.com/a-voyager/BluetoothHelper/blob/master/README_zh.md) | [English](https://github.com/a-voyager/BluetoothHelper/blob/master/README.md)
+[繁體中文](https://github.com/a-voyager/BluetoothHelper/blob/master/README_zh-tw.md) | [简体中文](https://github.com/a-voyager/BluetoothHelper/blob/master/README_zh.md) | [English](https://github.com/a-voyager/BluetoothHelper/blob/master/README.md)
 
 这是一个能够让你应用的蓝牙操作(特别是手机通过蓝牙控制物联网智能硬件设备)变得 **如此简洁**!
 
 ![image](https://github.com/a-voyager/BluetoothHelper/raw/master/imgs/ble_icon.png)
 
-> 感兴趣的话就别忘记给个Start哦 :）
+> 感兴趣的话就别忘记给个Star哦 :）
 
 ## 特点
  - 封装了常用的蓝牙相关操作, 将它们与Activity解耦, 比如搜索蓝牙设备等.
