@@ -1,20 +1,20 @@
-# Bluetooth Helper Library
+# 藍芽操作套件
 
 [繁體中文](https://github.com/a-voyager/BluetoothHelper/blob/master/README_zh-tw.md) | [简体中文](https://github.com/a-voyager/BluetoothHelper/blob/master/README_zh.md) | [English](https://github.com/a-voyager/BluetoothHelper/blob/master/README.md)
 
-A library makes your app's bluetooth operation(for Smart Iot Hardware especially) **so easy**!
+這是一個能讓你 App 操作藍芽（特別是手機透過藍芽控制物聯網設備）變得 **如此簡潔** 的套件！
 
 ![image](https://github.com/a-voyager/BluetoothHelper/raw/master/imgs/ble_icon.png)
 
-> Don't forget give me a star :）
+> 感興趣的話別忘了給個 Star 哦 :）
 
-## Feature
- - Packaged common bluetooth operations, such as device discovery, connect the remote device and more.
+## 特色
+ - 封裝了常見的藍芽相關操作，例如搜尋藍芽設備等。
 
   ```java
   btHelperClient.searchDevices(listener);
   ```
- - Sending messages is such as Http, you send a message to the remote device(not need to connect device firstly, such as Smart Iot Hardware) then you could get a response and a status code.
+ - 重寫 IO 操作，將藍芽發送指令包裝得像 HTTP，你可以直接將指令發送出去（不需考慮設備是否連結的問題，尤其是智能設備）然後像 HTTP 一樣獲得狀態碼以及返回值。
 
   ```java
   btHelperClient.sendMessage("20:15:03:18:08:63", item, true, new OnSendMessageListener() {
@@ -28,36 +28,36 @@ A library makes your app's bluetooth operation(for Smart Iot Hardware especially
   });
   ```
 
-## Dependency
-There are two ways:
+## 調用方法
+有兩種方式可供選擇：
 
- - clone this project, and use as dependency
- - just add following code to you build.gradle:
+ - Clone 此專案並設置 dependency
+ - 只需要將下面 Scripts 加入至 build.gradle：
 
  ```groovy
-    // Add it in your root build.gradle at the end of repositories
+    // 把這個加入到專案的 build.gradle
  	allprojects {
  		repositories {
  			...
  			maven { url "https://jitpack.io" }
  		}
  	}
- 	// Add the dependency
+ 	// 這個加入到 App 的 build.gradle
 	dependencies {
 	    compile 'com.github.a-voyager:BluetoothHelper:f71d40a98b'
 	}
  ```
 
-## Usage
- - Get the instance
- use a Context object to initialize
+## 用法
+ - 抓取範例
+ 使用 Context 來進行初始化
  ```java
  btHelperClient = BtHelperClient.from(MainActivity.this);
  ```
 
- - Send message to the remote device
- send message asynchronously, callback in main thread.
- parameters means: device's mac address, message object, if need to obtain response, SendMessageListener.
+ - 向藍芽設備發送指令
+ 異步發送訊息，並在主執行緒回傳。
+ 參數含意：設備的 Mac 地址，訊息對象，是否需要抓取回傳訊息，監聽器。
  ```java
  MessageItem item = new MessageItem("Hello");
 
@@ -65,11 +65,11 @@ There are two ways:
 
          @Override
          public void onSuccess(int status, String response) {
-            // Call when send a message succeed, and get a response from the remote device
+            // 當發送成功，同時獲得回傳時呼叫
 
-            // status:   the status describes ok or error.
-            //           1 respect the response is valid, -1 respect the response is invalid
-            // response: the response from the remote device, you can call response.getBytes() to get char[]
+            // 狀態碼：　描述回傳是否正確。
+            //           1 代表回傳內容正確，-1 代表回傳內容不正確，即數據損壞
+            // 回傳內容: 來自藍芽設備的回傳内容，可以透過 response.getBytes() 來抓取字節組
 
          }
 
@@ -86,8 +86,8 @@ There are two ways:
  });
  ```
 
- - Close connection
- just call close() method
+ - 關閉連結
+ 只需要調用 close() 方法
  ```java
      @Override
      protected void onDestroy() {
@@ -99,16 +99,16 @@ There are two ways:
  ```
 
 
-## More API
-- Search devices
-  search devices with just calling searchDevices() method
+## 更多程式調用
+- 搜尋藍芽設備
+  搜尋藍芽設備調用 searchDevices() 即可
 
  ```java
  btHelperClient.searchDevices(new OnSearchDeviceListener() {
 
          @Override
          public void onStartDiscovery() {
-             // Call before discovery devices
+             // 在進行搜尋前回傳
 
              Log.d(TAG, "onStartDiscovery()");
 
@@ -116,7 +116,7 @@ There are two ways:
 
          @Override
          public void onNewDeviceFound(BluetoothDevice device) {
-             // Call when found a new device
+             // 當尋找到一個新設備時回傳
 
              Log.d(TAG, "new device: " + device.getName() + " " + device.getAddress());
 
@@ -124,7 +124,7 @@ There are two ways:
 
          @Override
          public void onSearchCompleted(List<BluetoothDevice> bondedList, List<BluetoothDevice> newList) {
-             // Call when the discovery process completed
+             // 當搜尋藍芽設備完成後回傳
 
              Log.d(TAG, "SearchCompleted: bondedList" + bondedList.toString());
              Log.d(TAG, "SearchCompleted: newList" + newList.toString());
@@ -141,8 +141,8 @@ There are two ways:
  });
  ```
 
-- Set filter
- use a filter to check if a given response is an expect data.
+- 設置過濾器
+ 使用過濾器來過濾掉那些硬體設備出現差錯的數據
  ```java
  btHelperClient.setFilter(new Filter() {
 
@@ -154,9 +154,9 @@ There are two ways:
  });
  ```
 
-## To-Do List
- - Listening data mode
- - BtHelperServer
+## 待更新列表
+ - 純監聽數據模式
+ - 藍芽服務端模組
 
 
 ## License
